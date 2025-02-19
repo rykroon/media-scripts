@@ -4,8 +4,7 @@ from datetime import datetime
 import mimetypes
 from pathlib import Path
 
-from PIL import Image
-from PIL.ExifTags import Base as ExifTags
+from PIL import Image, ExifTags as exiftags
 
 
 """
@@ -14,50 +13,52 @@ format for the DateTime tag in the EXIF data.
 """
 
 
-def fix_movie_maker_date_time(source: Path, recursive: bool, apply_changes: bool):
+def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
     assert source.is_dir(), "Not a Directory."
 
     for f in source.iterdir():
         # Recurse into directories
-        if f.is_dir() and recursive is True:
-            fix_movie_maker_date_time(f, recursive, apply_changes)
+        if recursive is True and f.is_dir():
+            fix_movie_maker_date_time(
+                source=f, recursive=recursive, dry_run=dry_run
+            )
 
         if not f.is_file():
             continue
-    
-        mime_type, _ = mimetypes.guess_type(f)
-        if mime_type is None:
+
+        type_, _ = mimetypes.guess_type(f)
+        if type_ is None:
             continue
 
-        if not mime_type.startswith("image"):
+        if not type_.startswith("image"):
             continue
 
         with Image.open(f) as img:
             exif = img.getexif()
 
-            if ExifTags.Software not in exif:
+            if exiftags.Base.Software not in exif:
                 continue
 
-            if "Movie Maker" not in exif[ExifTags.Software]:
+            if "Movie Maker" not in exif[exiftags.Base.Software]:
                 continue
 
-            if ExifTags.DateTime not in exif:
+            if exiftags.Base.DateTime not in exif:
                 continue
 
             try:
                 datetime.strptime(
-                    exif[ExifTags.DateTime], "%Y:%m:%d %H:%M:%S",
+                    exif[exiftags.Base.DateTime], "%Y:%m:%d %H:%M:%S",
                 )
             except ValueError:
-                date_string = exif[ExifTags.DateTime]
+                date_string = exif[exiftags.Base.DateTime]
                 if len(date_string) > 24:
                     date_string = date_string[:24]
 
                 date_time = datetime.strptime(date_string, "%a %b %d %H:%M:%S %Y")
-                print(f'File: {f.name} - "{exif[ExifTags.DateTime]}" => "{date_time}"')
+                print(f'File: {f.name} - "{exif[exiftags.Base.DateTime]}" => "{date_time}"')
 
-                if apply_changes is True:
-                    exif[ExifTags.DateTime] = date_time.strftime("%Y:%m:%d %H:%M:%S")
+                if dry_run is False:
+                    exif[exiftags.Base.DateTime] = date_time.strftime("%Y:%m:%d %H:%M:%S")
                     img.save(f, exif=exif)
 
 
@@ -65,9 +66,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
 
     # Add arguments
-    parser.add_argument("--src", type=str, default=".")
+    parser.add_argument("--src", type=Path, default=Path.cwd())
     parser.add_argument("-r", "--recursive", action="store_true")
-    parser.add_argument("-a", "--apply", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
     ns = parser.parse_args()
 
     # Make sure directories are Path objects and
@@ -77,5 +78,5 @@ if __name__ == "__main__":
     fix_movie_maker_date_time(
         source=ns.src,
         recursive=ns.recursive,
-        apply_changes=ns.apply,
+        dry_run=ns.dry_run,
     )
