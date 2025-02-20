@@ -2,12 +2,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 
-def search_and_delete(
-    term: str,
-    source: Path,
-    recursive: bool,
-    case_insensitive: bool
-):
+def search_and_delete(term: str, source: Path, recursive: bool, case_insensitive: bool):
     if len(term) < 3:
         print("Search term must be at least 3 characters long.")
         return
@@ -42,5 +37,5 @@ if __name__ == "__main__":
         term=ns.term,
         source=ns.src,
         recursive=ns.recursive,
-        case_insensitive=ns.case_insensitive
+        case_insensitive=ns.case_insensitive,
     )

@@ -1,4 +1,3 @@
-
 from argparse import ArgumentParser
 from datetime import datetime
 import mimetypes
@@ -19,9 +18,7 @@ def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
     for f in source.iterdir():
         # Recurse into directories
         if recursive is True and f.is_dir():
-            fix_movie_maker_date_time(
-                source=f, recursive=recursive, dry_run=dry_run
-            )
+            fix_movie_maker_date_time(source=f, recursive=recursive, dry_run=dry_run)
 
         if not f.is_file():
             continue
@@ -47,7 +44,8 @@ def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
 
             try:
                 datetime.strptime(
-                    exif[exiftags.Base.DateTime], "%Y:%m:%d %H:%M:%S",
+                    exif[exiftags.Base.DateTime],
+                    "%Y:%m:%d %H:%M:%S",
                 )
             except ValueError:
                 date_string = exif[exiftags.Base.DateTime]
@@ -55,10 +53,14 @@ def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
                     date_string = date_string[:24]
 
                 date_time = datetime.strptime(date_string, "%a %b %d %H:%M:%S %Y")
-                print(f'File: {f.name} - "{exif[exiftags.Base.DateTime]}" => "{date_time}"')
+                print(
+                    f'File: {f.name} - "{exif[exiftags.Base.DateTime]}" => "{date_time}"'
+                )
 
                 if dry_run is False:
-                    exif[exiftags.Base.DateTime] = date_time.strftime("%Y:%m:%d %H:%M:%S")
+                    exif[exiftags.Base.DateTime] = date_time.strftime(
+                        "%Y:%m:%d %H:%M:%S"
+                    )
                     img.save(f, exif=exif)
 
 

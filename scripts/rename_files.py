@@ -8,11 +8,6 @@ import subprocess
 from PIL import Image as image, ExifTags as exif_tags
 
 
-"""
-Simplify this scripts to only rename files (not move them)
-"""
-
-
 def get_dates_via_exiftool(f: Path) -> list[datetime]:
     """
     Get the dates from the EXIF data using exiftool.
@@ -23,10 +18,10 @@ def get_dates_via_exiftool(f: Path) -> list[datetime]:
         "exiftool",
         "-j",
         "-DateTimeOriginal",
-        "-CreateDate", # (called DateTimeDigitized by the EXIF spec.)
-        "-ModifyDate", # (called DateTime by the EXIF spec.)
+        "-CreateDate",  # (called DateTimeDigitized by the EXIF spec.)
+        "-ModifyDate",  # (called DateTime by the EXIF spec.)
         "-fast",
-        str(f)
+        str(f),
     ]
     completed_process = subprocess.run(cmd, capture_output=True, text=True)
     try:
@@ -38,7 +33,7 @@ def get_dates_via_exiftool(f: Path) -> list[datetime]:
     for key in output:
         if "Date" in key:
             dates.append(datetime.strptime(output[key], "%Y:%m:%d %H:%M:%S"))
-    
+
     return dates
 
 
@@ -69,7 +64,7 @@ def get_dates_via_pillow(f: Path):
         date_time_digitized = exif.get(exif_tags.Base.DateTimeDigitized, None)
         if date_time_digitized is not None:
             dates.append(datetime.strptime(date_time_digitized, "%Y:%m:%d %H:%M:%S"))
-    
+
     return dates
 
 
@@ -85,12 +80,7 @@ def get_dates_via_stat(f: Path) -> list[datetime]:
     ]
 
 
-def rename_files(
-    source: Path,
-    recursive: bool,
-    exif_only: bool,
-    dry_run: bool,
-):
+def rename_files(source: Path, recursive: bool, exif_only: bool, dry_run: bool):
     if not source.is_dir():
         return
 
@@ -119,7 +109,7 @@ def rename_files(
             dates = get_dates_via_pillow(f)
         else:
             dates = get_dates_via_exiftool(f)
-        
+
         if exif_only is True and not dates:
             print(f"Could not find date for {f.name}.")
             continue

@@ -16,6 +16,7 @@ HASH_FUNCS: dict[str, ih.ImageHash] = {
     "whash": ih.whash,
 }
 
+
 @dataclass(slots=True)
 class HashResult:
     hash_str: str
@@ -37,11 +38,13 @@ def get_hashes(
 
     for f in source.iterdir():
         if recursive is True and f.is_dir():
-            hash_results.extend(get_hashes(
-                source=f,
-                recursive=recursive,
-                hash_func=hash_func,
-            ))
+            hash_results.extend(
+                get_hashes(
+                    source=f,
+                    recursive=recursive,
+                    hash_func=hash_func,
+                )
+            )
 
         if not f.is_file():
             continue
@@ -112,6 +115,7 @@ if __name__ == "__main__":
     )
 
     from pympler import asizeof
+
     print(f"size of hashes: {asizeof.asizeof(hashes)}")
 
     duplicates = get_duplicates(hashes, ns.hamming_distance)
@@ -122,4 +126,3 @@ if __name__ == "__main__":
     for d in duplicates:
         print("\n".join(f for f in d))
         print()
-    
