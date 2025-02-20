@@ -1,38 +1,43 @@
 from argparse import ArgumentParser
+from dataclasses import dataclass
 import mimetypes
 from pathlib import Path
 from typing import Callable, NamedTuple
+import time
 
-import imagehash
+import imagehash as ih
 from PIL import Image
 
 
-HASH_FUNCS: dict[str, imagehash.ImageHash] = {
-    "phash": imagehash.phash,
-    "ahash": imagehash.average_hash,
-    "dhash": imagehash.dhash,
-    "whash": imagehash.whash,
-    "colorhash": imagehash.colorhash,
+HASH_FUNCS: dict[str, ih.ImageHash] = {
+    "phash": ih.phash,
+    "ahash": ih.average_hash,
+    "dhash": ih.dhash,
+    "whash": ih.whash,
 }
 
-class HashResult(NamedTuple):
-    hash: imagehash.ImageHash
-    file: Path
+@dataclass(slots=True)
+class HashResult:
+    hash_str: str
+    file_name: str
+
+    def __sub__(self, other: "HashResult") -> int:
+        return ih.hex_to_hash(self.hash_str) - ih.hex_to_hash(other.hash_str)
 
 
 def get_hashes(
     source: Path,
     recursive: bool,
-    hash_func: Callable[[Image.Image], imagehash.ImageHash],
+    hash_func: Callable[[Image.Image], ih.ImageHash],
 ) -> list[HashResult]:
-    hashes: list[HashResult] = []
+    hash_results: list[HashResult] = []
 
     if not source.is_dir():
         return hashes
 
     for f in source.iterdir():
         if recursive is True and f.is_dir():
-            hashes.extend(get_hashes(
+            hash_results.extend(get_hashes(
                 source=f,
                 recursive=recursive,
                 hash_func=hash_func,
@@ -52,37 +57,38 @@ def get_hashes(
                 print(f"Error processing {f}: {e}")
                 continue
 
-            hashes.append(HashResult(hash=img_hash, file=f))
+            hash_results.append(HashResult(hash_str=str(img_hash), file_name=f.name))
 
-    return hashes
+    return hash_results
 
 
-def get_duplicates(hashes: list[HashResult]):
+def get_duplicates(
+    hash_results: list[HashResult], hamming_distance: int = 0
+) -> set[frozenset[Path]]:
     print("sorting hashes...")
-    hashes.sort(key=lambda x: str(x.hash))
-    stack = []
-    duplicates = set()
+    hash_results.sort(key=lambda x: x.hash_str)
+    stack: list[HashResult] = []
+    duplicates: set[frozenset[str]] = set()
 
     print("finding duplicates...")
-    for result in hashes:
+    for result in hash_results:
         if not stack:
             stack.append(result)
             continue
 
-        distance = stack[-1].hash - result.hash
-        if distance < ns.hamming_distance:
+        if stack[-1] - result < hamming_distance:
             stack.append(result)
         else:
             if len(stack) > 1:
                 print(f"found duplicates: {len(stack)}")
-                duplicates.add(frozenset(item.file for item in stack))
+                duplicates.add(frozenset(item.file_name for item in stack))
             stack.clear()
             stack.append(result)
 
     # check for duplicates at the end of the list
     if len(stack) > 1:
         print(f"found duplicates: {len(stack)}")
-        duplicates.add(frozenset(item.file for item in stack))
+        duplicates.add(frozenset(item.file_name for item in stack))
 
     return duplicates
 
@@ -96,6 +102,8 @@ if __name__ == "__main__":
 
     ns = parser.parse_args()
 
+    start = time.time()
+
     print("getting hashes...")
     hashes = get_hashes(
         source=ns.src,
@@ -106,8 +114,12 @@ if __name__ == "__main__":
     from pympler import asizeof
     print(f"size of hashes: {asizeof.asizeof(hashes)}")
 
-    duplicates = get_duplicates(hashes)
+    duplicates = get_duplicates(hashes, ns.hamming_distance)
+
+    end = time.time()
+    print(f"""Ran in {end - start:.2f} seconds""")
 
     for d in duplicates:
-        print("\n".join(f.name for f in d))
+        print("\n".join(f for f in d))
         print()
+    
