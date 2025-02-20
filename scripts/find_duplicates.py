@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Action
+from argparse import ArgumentParser
 import mimetypes
 from pathlib import Path
 from typing import Callable, NamedTuple
@@ -6,10 +6,8 @@ from typing import Callable, NamedTuple
 import imagehash
 from PIL import Image
 
-from utils import PathAction
 
-
-HASH_FUNCS = {
+HASH_FUNCS: dict[str, imagehash.ImageHash] = {
     "phash": imagehash.phash,
     "ahash": imagehash.average_hash,
     "dhash": imagehash.dhash,
@@ -55,7 +53,7 @@ def get_hashes(
                 continue
 
             hashes.append(HashResult(hash=img_hash, file=f))
-        
+
     return hashes
 
 
@@ -79,7 +77,8 @@ def get_duplicates(hashes: list[HashResult]):
                 print(f"found duplicates: {len(stack)}")
                 duplicates.add(frozenset(item.file for item in stack))
             stack.clear()
-    
+            stack.append(result)
+
     # check for duplicates at the end of the list
     if len(stack) > 1:
         print(f"found duplicates: {len(stack)}")
@@ -103,6 +102,9 @@ if __name__ == "__main__":
         recursive=ns.recursive,
         hash_func=HASH_FUNCS[ns.hash],
     )
+
+    from pympler import asizeof
+    print(f"size of hashes: {asizeof.asizeof(hashes)}")
 
     duplicates = get_duplicates(hashes)
 
