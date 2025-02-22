@@ -13,8 +13,6 @@ format for the DateTime tag in the EXIF data.
 
 
 def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
-    assert source.is_dir(), "Not a Directory."
-
     for f in source.iterdir():
         # Recurse into directories
         if recursive is True and f.is_dir():
@@ -33,10 +31,7 @@ def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
         with Image.open(f) as img:
             exif = img.getexif()
 
-            if exiftags.Base.Software not in exif:
-                continue
-
-            if "Movie Maker" not in exif[exiftags.Base.Software]:
+            if "Movie Maker" not in exif.get(exiftags.Base.Software, ""):
                 continue
 
             if exiftags.Base.DateTime not in exif:
@@ -44,8 +39,7 @@ def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
 
             try:
                 datetime.strptime(
-                    exif[exiftags.Base.DateTime],
-                    "%Y:%m:%d %H:%M:%S",
+                    exif[exiftags.Base.DateTime], "%Y:%m:%d %H:%M:%S",
                 )
             except ValueError:
                 date_string = exif[exiftags.Base.DateTime]
@@ -73,9 +67,13 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true")
     ns = parser.parse_args()
 
-    # Make sure directories are Path objects and
-    # are relative to the current working directory
-    ns.src = Path.cwd() / ns.src
+    if not ns.src.is_dir():
+        parser.error("Source must be a directory.")
+    
+    if ns.dry_run is False:
+        result = input("This will modify files. Continue? [y/n]: ")
+        if result != "y":
+            parser.exit()
 
     fix_movie_maker_date_time(
         source=ns.src,

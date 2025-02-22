@@ -2,14 +2,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 
-def search_and_delete(term: str, source: Path, recursive: bool, case_insensitive: bool):
-    if len(term) < 3:
-        print("Search term must be at least 3 characters long.")
-        return
-
-    if not source.is_dir():
-        return
-
+def search_and_delete(source: Path, term: str, recursive: bool, case_insensitive: bool):
     for f in source.iterdir():
         if recursive is True and f.is_dir():
             search_and_delete(source=f, term=term, recursive=recursive)
@@ -33,9 +26,15 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--case-insensitive", action="store_true")
     ns = parser.parse_args()
 
+    if len(ns.term) < 3:
+        parser.error("Search term must be at least 3 characters long.")
+    
+    if not ns.src.is_dir():
+        parser.error("Source must be a directory.")
+
     search_and_delete(
-        term=ns.term,
         source=ns.src,
+        term=ns.term,
         recursive=ns.recursive,
         case_insensitive=ns.case_insensitive,
     )
