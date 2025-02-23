@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     if len(ns.term) < 3:
         parser.error("Search term must be at least 3 characters long.")
-    
+
     if not ns.src.is_dir():
         parser.error("Source must be a directory.")
 

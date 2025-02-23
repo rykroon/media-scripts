@@ -39,7 +39,8 @@ def fix_movie_maker_date_time(source: Path, recursive: bool, dry_run: bool):
 
             try:
                 datetime.strptime(
-                    exif[exiftags.Base.DateTime], "%Y:%m:%d %H:%M:%S",
+                    exif[exiftags.Base.DateTime],
+                    "%Y:%m:%d %H:%M:%S",
                 )
             except ValueError:
                 date_string = exif[exiftags.Base.DateTime]
@@ -69,7 +70,7 @@ if __name__ == "__main__":
 
     if not ns.src.is_dir():
         parser.error("Source must be a directory.")
-    
+
     if ns.dry_run is False:
         result = input("This will modify files. Continue? [y/n]: ")
         if result != "y":
